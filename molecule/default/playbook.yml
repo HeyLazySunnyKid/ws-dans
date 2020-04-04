@@ -1,0 +1,53 @@
+---
+- name: Converge
+  hosts: all
+  vars:
+    # Ansible vars EXAMPLE!
+    ansible_python_interpreter: /usr/bin/python3
+    # Custom var, that used in include_tasks (zsh.yml)
+    username: root
+    dans_repos:
+      file:
+        - "yum.repos.d/dans-pacur.repo"
+      copr:
+        - "flatcap/neomutt"
+      dnf:
+        # yamllint disable rule:line-length
+        # no
+        - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_version }}.noarch.rpm"  # noqa 204
+        - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_version }}.noarch.rpm"  # noqa 204
+        - "https://github.com/rpmsphere/noarch/raw/master/r/rpmsphere-release-{{ ansible_distribution_version }}-1.noarch.rpm"  # noqa 204
+        # yamllint enable rule:line-length
+
+    dans_tools:
+      # Need everything: deps, tasks, several configs
+      - name: zsh
+        desc: 'Interactive shell'
+        deps: [fontconfig, util-linux-user, ruby, gawk, git, xclip, fzf]
+        include_tasks: tools_tasks/zsh.yml
+        conf:
+          - src: config/zsh
+            dest: ~/.zshrc
+          - src: config/zshalias
+            dest: ~/.zshalias
+
+      # Only configs
+      - name: tmux
+        desc: 'Terminal windows multiplexer'
+        conf:
+          - src: config/tmux
+            dest: ~/.tmux.conf
+
+      # Two config files
+      - name: git                           # Version control system
+        conf:
+          - src: config/gitconfig
+            dest: ~/.gitconfig
+          - src: config/gitexcludes
+            dest: ~/.gitexcludes
+
+      # Simple dnf install
+      - name: neomutt
+
+  roles:
+    - role: ws-dans

@@ -1,0 +1,92 @@
+---
+- name: Create yum.repos.d directory
+  file:
+    path: /etc/yum.repos.d
+    group: root
+    mode: 0755
+    owner: root
+    state: directory
+
+- name: Set copr repos
+  # TODO: write dnf copr module
+  block:
+    - name: Get list of enabled repos
+      command: 'dnf copr list --enabled'
+      args:
+        warn: no
+      changed_when: false
+      register: _danscopr_repos
+      tags: test
+
+    # Trick for create list in necessary format in two steps {{{
+    - name: Normalize list of copr repos
+      set_fact:
+        _coprrepos_str: |
+          {% for item in _danscopr_repos.stdout_lines -%}
+          {{ '/'.join(item.split('/')[-2:]) }} {% endfor %}
+      tags: test
+
+    - name: Split normalized list
+      set_fact:
+        _coprrepos: "{{ _coprrepos_str.split() }}"
+      tags: test
+    # }}}
+
+    - name: Disable copr repos [deleted from config ]
+      command: "dnf -y copr disable '{{ item }}'"
+      args:
+        warn: no
+      when: item not in dans_repos.copr
+      loop: "{{ _coprrepos }}"
+
+    - name: Enable copr repos
+      command: "dnf -y copr enable '{{ item }}'"
+      args:
+        warn: no
+      when: item not in _coprrepos
+      loop: "{{ dans_repos.copr }}"
+
+- name: Set yum repos from files
+  block:
+    - name: Get list of current repos
+      find:
+        paths: /etc/yum.repos.d
+        patterns: 'DansPlaced_*'
+      register: _dansplaced_repos
+
+    - name: Delete file repos [deleted from config]
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      when: (item.path | basename)[11:] not in
+        (dans_repos.file | map('basename'))
+      loop: "{{ _dansplaced_repos.files }}"
+      loop_control:
+        label: "{{ (item.path | basename)[11:] }}"
+
+    - name: Add custom yum repos
+      copy:
+        dest: "/etc/yum.repos.d/DansPlaced_{{ item | basename }}"
+        src: "{{ item }}"
+        directory_mode: 0755
+        group: root
+        mode: 0644
+        owner: root
+        backup: true
+      loop: "{{ dans_repos.file }}"
+      loop_control:
+        label: "{{ item | basename }}"
+
+- name: Set repos by rpm
+  # In this block we could only install packages with repos because no
+  # way to check which of them was removed from list. But you steal can delete
+  # bad repos packages, using dans_drop_list
+  block:
+    - name: Install rpm with repos
+      dnf:
+        name: "{{ dans_repos.dnf }}"
+
+- name: Update cache after all repos changes
+  dnf:
+    update_cache: yes
+    state: latest

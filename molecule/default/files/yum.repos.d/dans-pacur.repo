@@ -1,0 +1,5 @@
+[dans]
+name=Dans Pacur Repository
+baseurl=file:///srv/mirror/yum/fedora/30/
+gpgcheck=0
+enabled=1

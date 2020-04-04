@@ -1,0 +1,20 @@
+# General: {{{
+alias edit_alias='nvim ~/.zshalias'
+alias sunvim='sudo -E nvim'
+# }}}
+
+# Rdp: {{{
+function rdp(){
+    if [ -z "$1" ]; then
+        vared -p 'Host: ' -c host
+    else
+        host="$1"
+    fi
+    vared -p 'Username: ' -c username
+    xfreerdp +clipboard /v:$host /u:$username /size:90% /drive:vmshare,/data/VMShare
+}
+
+alias rdp_win_build='rdp win_build'
+# }}}
+
+# }}}

@@ -1,0 +1,26 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+lint:
+  name: yamllint
+  options:
+    d: "{extends: default, rules: { truthy: disable}}"
+platforms:
+  - name: dans-fedora
+    image: fedora:30
+provisioner:
+  name: ansible
+  lint:
+    name: ansible-lint
+    options:
+      x: [403]
+      # Due to ansible-lint bug in parse include_tasks file directive
+      # https://github.com/ansible/ansible-lint/issues/160#issuecomment-517998773
+      exclude: ['tasks/main.yml']
+
+verifier:
+  name: testinfra
+  lint:
+    name: flake8

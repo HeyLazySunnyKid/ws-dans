@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  author: HeyLazySunnyKid
+  description: Support role for all in one workstation settings
+  company: public
+  license: public
+
+  min_ansible_version: 1.2
+
+  platforms:
+    - name: Fedora
+      versions:
+        - 30
+
+  galaxy_tags: [system]
+
+dependencies: []
