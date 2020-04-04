@@ -1,0 +1,20 @@
+---
+- name: Install default packages
+  dnf:
+    name: "{{ dans_default_tools }}"
+
+- name: Add non-official repos
+  become: yes
+  import_tasks: repos.yml
+  tags: repos
+
+- name: Install user tools
+  include_tasks:
+    file: install_tools.yml
+    apply:
+      tags: "tools, {{ tool.name }}"
+  tags: always
+  loop: "{{ dans_tools }}"
+  loop_control:
+    loop_var: tool
+    label: "{{ tool.name }}"

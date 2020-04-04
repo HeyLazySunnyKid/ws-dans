@@ -1,0 +1,18 @@
+[alias]
+	st = status -s
+	go = checkout
+	cm = commit
+	cmm = commit -m
+	co = checkout
+	br = branch
+	rb = rebase
+	ls = log --pretty=format:"%C(yellow)%h%Cred%d\\ %Creset%s%Cblue\\ [%cn]" --decorate --graph
+	ll = log --pretty=format:"%C(yellow)%h%Cred%d\\ %Creset%s%Cblue\\ [%cn]" --decorate --numstat
+
+[user]
+	email = KalyuzhniyDA@sibintek.ru
+	name = Denis Kalyuzhnyy
+[core]
+	editor = nvim
+    excludesfile = ~/.gitexcludes
+

@@ -1,0 +1,87 @@
+---
+# Install tool.name from dans_tool.name hash
+# - name: Install dnf tool.name
+#   when: tool
+
+- name: Try to install package
+  block:
+    - name: "Install dnf package: {{ tool.name }}"
+      dnf:
+        name: "{{ tool.name }}"
+        state: latest
+      when: tool.type is undefined or tool.type == "dnf"
+      tags: pkgs
+
+    - name: "Install pip2 package: {{ tool.name }}"
+      pip:
+        name: "{{ tool.name }}"
+        extra_args: --user
+        executable: pip2
+        state: latest
+      when: tool.type is defined and tool.type == "pip2"
+      tags: pkgs
+
+    - name: "Install pip3 package: {{ tool.name }}"
+      pip:
+        name: "{{ tool.name }}"
+        extra_args: --user
+        executable: pip3
+        state: latest
+      when: tool.type is defined and tool.type == "pip3"
+      tags: pkgs
+
+    - name: "Install npm package: {{ tool.name }}"
+      npm:
+        name: "{{ tool.name }}"
+        global: yes
+        state: latest
+
+    - name: "Install role: {{ tool.name }}"
+      include_role:
+        name: "{{ tool.name }}"
+      when: tool.type is defined and tool.type == "role"
+
+- name: "Install {{ tool.name }}  dnf dependencies"
+  dnf:
+    name: "{{ tool.deps }}"
+    state: latest
+  when: tool.deps is defined
+  tags: pkgs
+
+- name: "Run incude_tasks for {{ tool.name }}"
+  include_tasks: "{{ tool.include_tasks }}"
+  when: tool.include_tasks is defined
+
+- name: "Place {{ tool.name }} config"
+  block:
+    - name: "Create {{ item.dest | dirname }} directory"
+      file:
+        path: "{{ item.dest | dirname }}"
+        state: directory
+      loop: "{{ tool.conf }}"
+
+    - name: "Copy {{ tool.name }} file confs"
+      copy:
+        dest: "{{ item.dest }}"
+        src: "{{ item.src }}"
+        group: "{{ item.group | default(omit) }}"
+        mode: "{{ item.mode | default(omit) }}"
+        owner: "{{ item.owner | default(omit) }}"
+        validate: "{{ item.validate | default(omit) }}"
+        backup: "{{ item.backup | default(omit) }}"
+      when: tool.conf[-3:] != '.j2'
+      loop: "{{ tool.conf }}"
+
+    - name: "Template {{ tool.name }} file confs"
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        group: "{{ item.group | default(omit) }}"
+        mode: "{{ item.mode | default(omit) }}"
+        owner: "{{ item.owner | default(omit) }}"
+        validate: "{{ item.validate | default(omit) }}"
+        backup: "{{ item.backup | default(omit) }}"
+      when: tool.conf[-3:] == '.j2'
+      loop: "{{ tool.conf }}"
+
+  when: tool.conf is defined
