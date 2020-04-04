@@ -1,0 +1,34 @@
+---
+- name: Change default shell for local user
+  become: true
+  lineinfile:
+    path: /etc/passwd
+    regex: "^({{ username }}:.*:)[A-Za-z0-9/]*$"
+    line: '\1/usr/bin/zsh'
+    backrefs: true
+    backup: true
+  when: domain is undefined
+
+- name: install zplug
+  git:
+    repo: https://github.com/zplug/zplug
+    dest: ~/.zplug
+    force: yes
+
+- name: install zplugin
+  git:
+    repo: https://github.com/zdharma/zinit.git
+    dest: ~/.zinit/bin
+
+# My terminal need special font
+- name: Create folder for fonts
+  become: true
+  file:
+    path: /usr/share/fonts/nerdfonts
+    state: directory
+
+- name: Set nerd font
+  become: true
+  copy:
+    src: 'fonts/Anonymice Nerd Font Complete Mono.ttf'
+    dest: '/usr/share/fonts/nerdfonts/Anonymice Nerd Font Complete Mono.ttf'
