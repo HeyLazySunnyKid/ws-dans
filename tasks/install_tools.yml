@@ -1,87 +1,174 @@
 ---
-# Install tool.name from dans_tool.name hash
-# - name: Install dnf tool.name
-#   when: tool
-
-- name: Try to install package
-  block:
-    - name: "Install dnf package: {{ tool.name }}"
-      dnf:
-        name: "{{ tool.name }}"
-        state: latest
-      when: tool.type is undefined or tool.type == "dnf"
-      tags: pkgs
-
-    - name: "Install pip2 package: {{ tool.name }}"
-      pip:
-        name: "{{ tool.name }}"
-        extra_args: --user
-        executable: pip2
-        state: latest
-      when: tool.type is defined and tool.type == "pip2"
-      tags: pkgs
-
-    - name: "Install pip3 package: {{ tool.name }}"
-      pip:
-        name: "{{ tool.name }}"
-        extra_args: --user
-        executable: pip3
-        state: latest
-      when: tool.type is defined and tool.type == "pip3"
-      tags: pkgs
-
-    - name: "Install npm package: {{ tool.name }}"
-      npm:
-        name: "{{ tool.name }}"
-        global: yes
-        state: latest
-
-    - name: "Install role: {{ tool.name }}"
-      include_role:
-        name: "{{ tool.name }}"
-      when: tool.type is defined and tool.type == "role"
-
-- name: "Install {{ tool.name }}  dnf dependencies"
+### Try to install tool {{{
+- name: "Install dnf package: {{ tool.name }}"
+  become: yes
   dnf:
-    name: "{{ tool.deps }}"
+    name: "{{ tool.name }}"
     state: latest
-  when: tool.deps is defined
+  when: tool.type is undefined or tool.type == "dnf"
   tags: pkgs
 
+- name: "Install pip2 package: {{ tool.name }}"
+  become: yes
+  pip:
+    name: "{{ tool.name }}"
+    executable: pip2
+    extra_args: --user
+    state: latest
+  when: tool.type is defined and tool.type == "pip2"
+  tags: pkgs
+
+- name: "Install pip3 package: {{ tool.name }}"
+  become: yes
+  pip:
+    name: "{{ tool.name }}"
+    executable: pip3
+    extra_args: --user
+    state: latest
+  when: tool.type is defined and tool.type == "pip3"
+  tags: pkgs
+
+- name: "Install npm package: {{ tool.name }}"
+  become: yes
+  npm:
+    name: "{{ tool.name }}"
+    global: yes
+    state: latest
+  when: tool.type is defined and tool.type == "npm"
+  tags: pkgs
+
+- name: "Install role: {{ tool.name }}"
+  vars:
+    ansible_become: yes
+  include_role:
+    name: "{{ tool.name }}"
+  when: tool.type is defined and tool.type == 'role'
+
+### }}}
+
+- name: "Try to install {{ tool.name }} dependencies"
+  block:
+    - name: "Install dnf dependencies of {{ tool.name }}"
+      become: yes
+      dnf:
+        name: "{{ tool.deps.dnf }}"
+        state: latest
+      when: tool.deps.dnf is defined
+      tags: pkgs
+
+    - name: "Install pip2 dependencies of {{ tool.name }}"
+      become: yes
+      pip:
+        name: "{{ tool.deps.pip2 }}"
+        executable: pip2
+        extra_args: --user
+        state: latest
+      when: tool.deps.pip2 is defined
+      tags: pkgs
+
+    - name: "Install pip3 dependencies of {{ tool.name }}"
+      become: yes
+      pip:
+        name: "{{ tool.deps.pip3 }}"
+        executable: pip3
+        extra_args: --user
+        state: latest
+      when: tool.pip3 is defined
+      tags: pkgs
+
+    - name: "Install npm dependencies of {{ tool.name }}"
+      become: yes
+      npm:
+        name: "{{ tool.deps.npm }}"
+        global: yes
+        state: latest
+      when: tool.deps.npm is defined
+      tags: pkgs
+
 - name: "Run incude_tasks for {{ tool.name }}"
-  include_tasks: "{{ tool.include_tasks }}"
+  include_tasks: "include_tasks/{{ tool.include_tasks }}"
   when: tool.include_tasks is defined
+  tags: always
 
 - name: "Place {{ tool.name }} config"
+  when: tool.config is defined
   block:
-    - name: "Create {{ item.dest | dirname }} directory"
+
+    # If files places not under the home, that mean we should escalate
+    # privelegies
+    - name: "create {{ tool.name }} directory by root"
+      become: yes
       file:
         path: "{{ item.dest | dirname }}"
         state: directory
-      loop: "{{ tool.conf }}"
+      when: "item.dest[0] != '~'"
+      loop: "{{ tool.config }}"
+      loop_control:
+        label: "{{ item.dest | dirname }}"
 
-    - name: "Copy {{ tool.name }} file confs"
+    - name: "copy {{ tool.name }} file confs by root"
+      become: yes
       copy:
-        dest: "{{ item.dest }}"
-        src: "{{ item.src }}"
-        group: "{{ item.group | default(omit) }}"
-        mode: "{{ item.mode | default(omit) }}"
-        owner: "{{ item.owner | default(omit) }}"
-        validate: "{{ item.validate | default(omit) }}"
-        backup: "{{ item.backup | default(omit) }}"
-      when: tool.conf[-3:] != '.j2'
-      loop: "{{ tool.conf }}"
-
-    - name: "Template {{ tool.name }} file confs"
-      copy:
-        src: "{{ item.src }}"
+        src: "config/{{ item.src }}"
         dest: "{{ item.dest }}"
         group: "{{ item.group | default(omit) }}"
         mode: "{{ item.mode | default(omit) }}"
         owner: "{{ item.owner | default(omit) }}"
         validate: "{{ item.validate | default(omit) }}"
         backup: "{{ item.backup | default(omit) }}"
-      when: tool.conf[-3:] == '.j2'
-      loop: "{{ tool.conf }}"
+      when: "item.dest[0] != '~' and item.src[-3:] != '.j2'"
+      loop: "{{ tool.config }}"
+      loop_control:
+        label: "{{ item.dest }}"
 
-  when: tool.conf is defined
+    - name: "template {{ tool.name }} file confs by root"
+      become: yes
+      template:
+        src: "config/{{ item.src }}"
+        dest: "{{ item.dest }}"
+        group: "{{ item.group | default(omit) }}"
+        mode: "{{ item.mode | default(omit) }}"
+        owner: "{{ item.owner | default(omit) }}"
+        validate: "{{ item.validate | default(omit) }}"
+        backup: "{{ item.backup | default(omit) }}"
+      when: "item.dest[0] != '~' and item.src[-3:] == '.j2'"
+      loop: "{{ tool.config }}"
+      loop_control:
+        label: "{{ item.dest }}"
+
+    - name: "create {{ tool.name }} directory"
+      file:
+        path: "{{ item.dest | dirname }}"
+        state: directory
+      when: "item.dest[0] == '~'"
+      loop: "{{ tool.config }}"
+      loop_control:
+        label: "{{ item.dest | dirname }}"
+
+    - name: "copy {{ tool.name }} file confs"
+      copy:
+        src: "config/{{ item.src }}"
+        dest: "{{ item.dest }}"
+        group: "{{ item.group | default(omit) }}"
+        mode: "{{ item.mode | default(omit) }}"
+        owner: "{{ item.owner | default(omit) }}"
+        validate: "{{ item.validate | default(omit) }}"
+        backup: "{{ item.backup | default(omit) }}"
+      when: "item.dest[0] == '~' and item.src[-3:] != '.j2'"
+      loop: "{{ tool.config }}"
+      loop_control:
+        label: "{{ item.dest }}"
+
+    - name: "template {{ tool.name }} file confs"
+      template:
+        src: "config/{{ item.src }}"
+        dest: "{{ item.dest }}"
+        group: "{{ item.group | default(omit) }}"
+        mode: "{{ item.mode | default(omit) }}"
+        owner: "{{ item.owner | default(omit) }}"
+        validate: "{{ item.validate | default(omit) }}"
+        backup: "{{ item.backup | default(omit) }}"
+      when: "item.dest[0] == '~' and item.src[-3:] == '.j2'"
+      loop: "{{ tool.config }}"
+      loop_control:
+        label: "{{ item.dest }}"

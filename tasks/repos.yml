@@ -16,7 +16,6 @@
         warn: no
       changed_when: false
       register: _danscopr_repos
-      tags: test
 
     # Trick for create list in necessary format in two steps {{{
     - name: Normalize list of copr repos
@@ -24,12 +23,10 @@
         _coprrepos_str: |
           {% for item in _danscopr_repos.stdout_lines -%}
           {{ '/'.join(item.split('/')[-2:]) }} {% endfor %}
-      tags: test
 
     - name: Split normalized list
       set_fact:
         _coprrepos: "{{ _coprrepos_str.split() }}"
-      tags: test
     # }}}
 
     - name: Disable copr repos [deleted from config ]
