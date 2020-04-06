@@ -2,11 +2,12 @@ ws-dans
 =========
 
 The main idea is that user's workstation in conrast of servers has just one
-role: be a user workstation! ws-dans ,which means workstation-dansing, try to
-help manage user workstation's using configure system anSible. User just should
-fill several dicts in their playbook's which would describe every changes and
-configurations files from default system installation.  And in result get
-ability to deploy workstation wherever he want and danSing in new free time.
+role: to be a user's workstation! ws-dans which means workstation-dance with
+anSible tries to help manage user's workstations by using ansible configure
+system. You should just fill several dictionaries in your playbook vars which
+describe all changes and configurations from default system installation and get
+ability to deploy workstation wherever you want and dance at appearing free time
+in result.
 
 Supprted Systems
 ----------------
@@ -63,7 +64,7 @@ More examples in molecule tests: molecule/default/playbook.yml
 License
 -------
 
-public
+MIT
 
 Author Information
 ------------------

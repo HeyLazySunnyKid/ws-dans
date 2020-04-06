@@ -1,5 +1,6 @@
 ---
 - name: Install default packages
+  become: yes
   dnf:
     name: "{{ dans_default_tools }}"
 
@@ -12,7 +13,7 @@
   include_tasks:
     file: install_tools.yml
     apply:
-      tags: "tools, {{ tool.name }}"
+      tags: "tools, {{ tool.tag | default(tool.name) }}"
   tags: always
   loop: "{{ dans_tools }}"
   loop_control:
