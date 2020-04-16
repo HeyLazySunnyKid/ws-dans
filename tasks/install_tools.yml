@@ -13,7 +13,6 @@
   pip:
     name: "{{ tool.name }}"
     executable: pip2
-    extra_args: --user
     state: latest
   when: tool.type is defined and tool.type == "pip2"
   tags: pkgs
@@ -23,7 +22,6 @@
   pip:
     name: "{{ tool.name }}"
     executable: pip3
-    extra_args: --user
     state: latest
   when: tool.type is defined and tool.type == "pip3"
   tags: pkgs
@@ -61,7 +59,6 @@
       pip:
         name: "{{ tool.deps.pip2 }}"
         executable: pip2
-        extra_args: --user
         state: latest
       when: tool.deps.pip2 is defined
       tags: pkgs
@@ -71,7 +68,6 @@
       pip:
         name: "{{ tool.deps.pip3 }}"
         executable: pip3
-        extra_args: --user
         state: latest
       when: tool.pip3 is defined
       tags: pkgs
