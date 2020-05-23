@@ -25,7 +25,7 @@ dans_repos: dict with all repositories
 
 dans_tools: list of all tools
   - name: name of package in `type` package manager
-    type(default: dnf): dnf, pip2, pip3, npm, role, none 
+    type(default: dnf): dnf, pip2, pip3, npm, none
     desc: text fild for decription
     include_tasks: path to tool specific tasks
     conf: list of configuration files. if extention of file is `.j2` template
