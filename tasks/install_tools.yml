@@ -1,5 +1,6 @@
 ---
-### Try to install tool {{{
+### Install tool {{{
+
 - name: "Install dnf package: {{ tool.name }}"
   become: yes
   dnf:
@@ -13,7 +14,6 @@
   pip:
     name: "{{ tool.name }}"
     executable: pip2
-    extra_args: --user
     state: latest
   when: tool.type is defined and tool.type == "pip2"
   tags: pkgs
@@ -23,7 +23,6 @@
   pip:
     name: "{{ tool.name }}"
     executable: pip3
-    extra_args: --user
     state: latest
   when: tool.type is defined and tool.type == "pip3"
   tags: pkgs
@@ -37,16 +36,9 @@
   when: tool.type is defined and tool.type == "npm"
   tags: pkgs
 
-- name: "Install role: {{ tool.name }}"
-  vars:
-    ansible_become: yes
-  include_role:
-    name: "{{ tool.name }}"
-  when: tool.type is defined and tool.type == 'role'
-
 ### }}}
 
-- name: "Try to install {{ tool.name }} dependencies"
+- name: "Install {{ tool.name }} dependencies"
   block:
     - name: "Install dnf dependencies of {{ tool.name }}"
       become: yes
@@ -61,7 +53,6 @@
       pip:
         name: "{{ tool.deps.pip2 }}"
         executable: pip2
-        extra_args: --user
         state: latest
       when: tool.deps.pip2 is defined
       tags: pkgs
@@ -71,7 +62,6 @@
       pip:
         name: "{{ tool.deps.pip3 }}"
         executable: pip3
-        extra_args: --user
         state: latest
       when: tool.pip3 is defined
       tags: pkgs
@@ -95,7 +85,7 @@
   block:
 
     # If files places not under the home, that mean we should escalate
-    # privelegies
+    # privileges
     - name: "create {{ tool.name }} directory by root"
       become: yes
       file:
@@ -172,3 +162,10 @@
       loop: "{{ tool.config }}"
       loop_control:
         label: "{{ item.dest }}"
+
+- name: Start and tool's services
+  service:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  loop: "{{ tool.services | default([]) }}"
