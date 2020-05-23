@@ -162,3 +162,10 @@
       loop: "{{ tool.config }}"
       loop_control:
         label: "{{ item.dest }}"
+
+- name: Start and tool's services
+  service:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  loop: "{{ tool.services | default([]) }}"
