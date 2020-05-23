@@ -1,5 +1,6 @@
 ---
-### Try to install tool {{{
+### Install tool {{{
+
 - name: "Install dnf package: {{ tool.name }}"
   become: yes
   dnf:
@@ -37,7 +38,7 @@
 
 ### }}}
 
-- name: "Try to install {{ tool.name }} dependencies"
+- name: "Install {{ tool.name }} dependencies"
   block:
     - name: "Install dnf dependencies of {{ tool.name }}"
       become: yes
@@ -84,7 +85,7 @@
   block:
 
     # If files places not under the home, that mean we should escalate
-    # privelegies
+    # privileges
     - name: "create {{ tool.name }} directory by root"
       become: yes
       file:
