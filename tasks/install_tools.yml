@@ -35,13 +35,6 @@
   when: tool.type is defined and tool.type == "npm"
   tags: pkgs
 
-- name: "Install role: {{ tool.name }}"
-  vars:
-    ansible_become: yes
-  include_role:
-    name: "{{ tool.name }}"
-  when: tool.type is defined and tool.type == 'role'
-
 ### }}}
 
 - name: "Try to install {{ tool.name }} dependencies"
