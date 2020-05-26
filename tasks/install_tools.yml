@@ -163,7 +163,8 @@
       loop_control:
         label: "{{ item.dest }}"
 
-- name: Start and tool's services
+- name: Start and enable tool's services
+  become: yes
   service:
     name: "{{ item }}"
     enabled: yes
