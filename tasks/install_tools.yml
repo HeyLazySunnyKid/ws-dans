@@ -85,7 +85,7 @@
   when: tool.config is defined
   block:
     - name: "create {{ tool.name }} directory by root"
-      become: "{{ item.dest[0] == '~' | ternary('no', 'yes') }}"
+      become: "{{ 'no' if item.dest[0] == '~' else 'yes' }}"
       file:
         path: "{{ item.dest | dirname }}"
         state: directory
@@ -94,7 +94,7 @@
         label: "{{ item.dest | dirname }}"
 
     - name: "copy {{ tool.name }} file confs by root"
-      become: "{{ item.dest[0] == '~' | ternary('no', 'yes') }}"
+      become: "{{ 'no' if item.dest[0] == '~' else 'yes' }}"
       copy:
         src: "config/{{ item.src }}"
         dest: "{{ item.dest }}"
@@ -110,7 +110,7 @@
         label: "{{ item.dest }}"
 
     - name: "template {{ tool.name }} file confs by root"
-      become: "{{ item.dest[0] == '~' | ternary('no', 'yes') }}"
+      become: "{{ 'no' if item.dest[0] == '~' else 'yes' }}"
       template:
         src: "config/{{ item.src }}"
         dest: "{{ item.dest }}"
@@ -126,7 +126,7 @@
         label: "{{ item.dest }}"
 
 - name: Start and enable tool's services
-  become: yes
+  become: "{{ 'no' if item[0] == '~' else 'yes' }}"
   systemd:
     name: "{{ (item[0] == '~') | ternary(item[1:], item) }}"
     enabled: yes
@@ -134,4 +134,7 @@
       {{ (copy_config.changed or template_config.changed)
       | ternary('restarted', 'started') }}
     scope: "{{ (item[0] == '~') | ternary('user', 'system') }}"
+    daemon_reload: >-
+      {{ (copy_config.changed or template_config.changed)
+      | ternary('yes', 'no') }}
   loop: "{{ tool.services | default([]) }}"
