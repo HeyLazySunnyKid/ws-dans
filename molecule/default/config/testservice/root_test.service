@@ -1,0 +1,9 @@
+# test.service
+
+[Unit]
+Description=ws-dans test service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'echo "Hello, Root World" > /var/log/root_test.log'
+TimeoutStartSec=1min30s

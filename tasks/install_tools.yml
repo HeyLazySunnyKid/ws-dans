@@ -80,6 +80,7 @@
   when: tool.include_tasks is defined
   tags: always
 
+  # TODO: restart services when config changed
 - name: "Place {{ tool.name }} config"
   when: tool.config is defined
   block:
@@ -87,17 +88,16 @@
     # If files places not under the home, that mean we should escalate
     # privileges
     - name: "create {{ tool.name }} directory by root"
-      become: yes
+      become: "{{ item.dest[0] != '~' | ternary('yes', 'no')}}"
       file:
         path: "{{ item.dest | dirname }}"
         state: directory
-      when: "item.dest[0] != '~'"
       loop: "{{ tool.config }}"
       loop_control:
         label: "{{ item.dest | dirname }}"
 
     - name: "copy {{ tool.name }} file confs by root"
-      become: yes
+      become: "{{ item.dest[0] != '~' | ternary('yes', 'no')}}"
       copy:
         src: "config/{{ item.src }}"
         dest: "{{ item.dest }}"
@@ -106,13 +106,13 @@
         owner: "{{ item.owner | default(omit) }}"
         validate: "{{ item.validate | default(omit) }}"
         backup: "{{ item.backup | default(omit) }}"
-      when: "item.dest[0] != '~' and item.src[-3:] != '.j2'"
+      when: "item.src[-3:] != '.j2'"
       loop: "{{ tool.config }}"
       loop_control:
         label: "{{ item.dest }}"
 
     - name: "template {{ tool.name }} file confs by root"
-      become: yes
+      become: "{{ item.dest[0] != '~' | ternary('yes', 'no')}}"
       template:
         src: "config/{{ item.src }}"
         dest: "{{ item.dest }}"
@@ -121,52 +121,16 @@
         owner: "{{ item.owner | default(omit) }}"
         validate: "{{ item.validate | default(omit) }}"
         backup: "{{ item.backup | default(omit) }}"
-      when: "item.dest[0] != '~' and item.src[-3:] == '.j2'"
-      loop: "{{ tool.config }}"
-      loop_control:
-        label: "{{ item.dest }}"
-
-    - name: "create {{ tool.name }} directory"
-      file:
-        path: "{{ item.dest | dirname }}"
-        state: directory
-      when: "item.dest[0] == '~'"
-      loop: "{{ tool.config }}"
-      loop_control:
-        label: "{{ item.dest | dirname }}"
-
-    - name: "copy {{ tool.name }} file confs"
-      copy:
-        src: "config/{{ item.src }}"
-        dest: "{{ item.dest }}"
-        group: "{{ item.group | default(omit) }}"
-        mode: "{{ item.mode | default(omit) }}"
-        owner: "{{ item.owner | default(omit) }}"
-        validate: "{{ item.validate | default(omit) }}"
-        backup: "{{ item.backup | default(omit) }}"
-      when: "item.dest[0] == '~' and item.src[-3:] != '.j2'"
-      loop: "{{ tool.config }}"
-      loop_control:
-        label: "{{ item.dest }}"
-
-    - name: "template {{ tool.name }} file confs"
-      template:
-        src: "config/{{ item.src }}"
-        dest: "{{ item.dest }}"
-        group: "{{ item.group | default(omit) }}"
-        mode: "{{ item.mode | default(omit) }}"
-        owner: "{{ item.owner | default(omit) }}"
-        validate: "{{ item.validate | default(omit) }}"
-        backup: "{{ item.backup | default(omit) }}"
-      when: "item.dest[0] == '~' and item.src[-3:] == '.j2'"
+      when: "item.src[-3:] == '.j2'"
       loop: "{{ tool.config }}"
       loop_control:
         label: "{{ item.dest }}"
 
 - name: Start and enable tool's services
   become: yes
-  service:
-    name: "{{ item }}"
+  systemd:
+    name: "{{ (item[0] == '~') | ternary(item[1:], item)  }}"
     enabled: yes
     state: started
+    scope: "{{ (item[0] == '~') | ternary('user', 'system') }}"
   loop: "{{ tool.services | default([]) }}"

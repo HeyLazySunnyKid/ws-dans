@@ -1,0 +1,11 @@
+# test.timer
+
+[Unit]
+Description=User Test Timer
+
+[Timer]
+OnCalendar=*:*:0
+Unit=user_test.service
+
+[Install]
+WantedBy=timers.target

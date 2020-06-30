@@ -6,6 +6,7 @@
     ansible_python_interpreter: /usr/bin/python3
     # Custom var, that used in include_tasks (zsh.yml)
     username: root
+
     dans_repos:
       file:
         - "yum.repos.d/dans-pacur.repo"
@@ -15,8 +16,9 @@
         # yamllint disable rule:line-length
         - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_version }}.noarch.rpm"  # noqa 204
         - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_version }}.noarch.rpm"  # noqa 204
-        - "https://github.com/rpmsphere/noarch/raw/master/r/rpmsphere-release-{{ ansible_distribution_version }}-1.noarch.rpm"  # noqa 204
+        - "https://github.com/rpmsphere/noarch/raw/master/r/rpmsphere-release-32-1.noarch.rpm"
         # yamllint enable rule:line-length
+
 
     dans_tools:
       # Need everything: deps, tasks, several configs
@@ -37,7 +39,7 @@
           - src: tmux
             dest: ~/.tmux.conf
 
-      # Two config files
+      # Three config files with root config
       - name: git                           # Version control system
         config:
           - src: gitconfig
@@ -47,6 +49,21 @@
 
       # Simple dnf install
       - name: neomutt
+
+      # Just test part of git config
+      - name: testservice
+        desc: services and user space
+        type: none
+        config:
+          - src: testservice/root_test.service
+            dest: "/etc/systemd/system/root_test.service"
+          - src: testservice/root_test.timer
+            dest: "/etc/systemd/system/root_test.timer"
+          - src: testservice/user_test.service
+            dest: "~/.config/systemd/user/user_test.service"
+          - src: testservice/root_test.timer
+            dest: "~/.config/systemd/user/user_test.timer"
+        services: ['root_test.timer']
 
   roles:
     - role: ws-dans
