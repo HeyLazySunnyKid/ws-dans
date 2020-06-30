@@ -85,7 +85,7 @@
   when: tool.config is defined
   block:
     - name: "create {{ tool.name }} directory by root"
-      become: "{{ item.dest[0] == '~' | ternary('no', 'yes')}}"
+      become: "{{ item.dest[0] == '~' | ternary('no', 'yes') }}"
       file:
         path: "{{ item.dest | dirname }}"
         state: directory
@@ -94,7 +94,7 @@
         label: "{{ item.dest | dirname }}"
 
     - name: "copy {{ tool.name }} file confs by root"
-      become: "{{ item.dest[0] == '~' | ternary('no', 'yes')}}"
+      become: "{{ item.dest[0] == '~' | ternary('no', 'yes') }}"
       copy:
         src: "config/{{ item.src }}"
         dest: "{{ item.dest }}"
@@ -103,13 +103,14 @@
         owner: "{{ item.owner | default(omit) }}"
         validate: "{{ item.validate | default(omit) }}"
         backup: "{{ item.backup | default(omit) }}"
+      register: copy_config
       when: "item.src[-3:] != '.j2'"
       loop: "{{ tool.config }}"
       loop_control:
         label: "{{ item.dest }}"
 
     - name: "template {{ tool.name }} file confs by root"
-      become: "{{ item.dest[0] == '~' | ternary('no', 'yes')}}"
+      become: "{{ item.dest[0] == '~' | ternary('no', 'yes') }}"
       template:
         src: "config/{{ item.src }}"
         dest: "{{ item.dest }}"
@@ -118,6 +119,7 @@
         owner: "{{ item.owner | default(omit) }}"
         validate: "{{ item.validate | default(omit) }}"
         backup: "{{ item.backup | default(omit) }}"
+      register: template_config
       when: "item.src[-3:] == '.j2'"
       loop: "{{ tool.config }}"
       loop_control:
@@ -126,8 +128,10 @@
 - name: Start and enable tool's services
   become: yes
   systemd:
-    name: "{{ (item[0] == '~') | ternary(item[1:], item)  }}"
+    name: "{{ (item[0] == '~') | ternary(item[1:], item) }}"
     enabled: yes
-    state: started
+    state: >-
+      {{ (copy_config.changed or template_config.changed)
+      | ternary('restarted', 'started') }}
     scope: "{{ (item[0] == '~') | ternary('user', 'system') }}"
   loop: "{{ tool.services | default([]) }}"
