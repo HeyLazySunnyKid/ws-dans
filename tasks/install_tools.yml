@@ -84,11 +84,8 @@
 - name: "Place {{ tool.name }} config"
   when: tool.config is defined
   block:
-
-    # If files places not under the home, that mean we should escalate
-    # privileges
     - name: "create {{ tool.name }} directory by root"
-      become: "{{ item.dest[0] != '~' | ternary('yes', 'no')}}"
+      become: "{{ item.dest[0] == '~' | ternary('no', 'yes')}}"
       file:
         path: "{{ item.dest | dirname }}"
         state: directory
@@ -97,7 +94,7 @@
         label: "{{ item.dest | dirname }}"
 
     - name: "copy {{ tool.name }} file confs by root"
-      become: "{{ item.dest[0] != '~' | ternary('yes', 'no')}}"
+      become: "{{ item.dest[0] == '~' | ternary('no', 'yes')}}"
       copy:
         src: "config/{{ item.src }}"
         dest: "{{ item.dest }}"
@@ -112,7 +109,7 @@
         label: "{{ item.dest }}"
 
     - name: "template {{ tool.name }} file confs by root"
-      become: "{{ item.dest[0] != '~' | ternary('yes', 'no')}}"
+      become: "{{ item.dest[0] == '~' | ternary('no', 'yes')}}"
       template:
         src: "config/{{ item.src }}"
         dest: "{{ item.dest }}"
