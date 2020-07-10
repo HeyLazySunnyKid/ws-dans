@@ -15,6 +15,7 @@
       args:
         warn: no
       changed_when: false
+      check_mode: false
       register: _danscopr_repos
 
     # Trick for create list in necessary format in two steps {{{

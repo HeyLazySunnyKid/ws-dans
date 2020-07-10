@@ -10,19 +10,21 @@
   tags: pkgs
 
 - name: "Install pip2 package: {{ tool.name }}"
-  become: yes
+  become: "{{ 'no' if tool.name[0] == '~' else 'yes' }}"
   pip:
-    name: "{{ tool.name }}"
+    name: "{{ (tool.name[0] == '~') | ternary(tool.name[1:], tool.name) }}"
     executable: pip2
+    extra_args: "{{ (tool.name[0] == '~') | ternary('--user', omit()) }}"
     state: latest
   when: tool.type is defined and tool.type == "pip2"
   tags: pkgs
 
 - name: "Install pip3 package: {{ tool.name }}"
-  become: yes
+  become: "{{ 'no' if tool.name[0] == '~' else 'yes' }}"
   pip:
-    name: "{{ tool.name }}"
+    name: "{{ (tool.name[0] == '~') | ternary(tool.name[1:], tool.name) }}"
     executable: pip3
+    extra_args: "{{ (tool.name[0] == '~') | ternary('--user', omit()) }}"
     state: latest
   when: tool.type is defined and tool.type == "pip3"
   tags: pkgs
@@ -48,24 +50,29 @@
       when: tool.deps.dnf is defined
       tags: pkgs
 
-    - name: "Install pip2 dependencies of {{ tool.name }}"
-      become: yes
+    - name: "Install pip2 dependencies of {{ tool.deps.pip2 }}"
+      become: "{{ 'no' if item[0] == '~' else 'yes' }}"
       pip:
-        name: "{{ tool.deps.pip2 }}"
+        name: "{{ (item[0] == '~') | ternary(item[1:], item) }}"
         executable: pip2
+        extra_args: "{{ (item[0] == '~') | ternary('--user', omit) }}"
         state: latest
+      loop: "{{ tool.deps.pip2 }}"
       when: tool.deps.pip2 is defined
       tags: pkgs
 
     - name: "Install pip3 dependencies of {{ tool.name }}"
-      become: yes
+      become: "{{ 'no' if item[0] == '~' else 'yes' }}"
       pip:
-        name: "{{ tool.deps.pip3 }}"
+        name: "{{ (item[0] == '~') | ternary(item[1:], item) }}"
         executable: pip3
+        extra_args: "{{ (item[0] == '~') | ternary('--user', omit) }}"
         state: latest
-      when: tool.pip3 is defined
+      loop: "{{ tool.deps.pip3 }}"
+      when: tool.deps.pip3 is defined
       tags: pkgs
 
+    # TODO: add npm user space
     - name: "Install npm dependencies of {{ tool.name }}"
       become: yes
       npm:
