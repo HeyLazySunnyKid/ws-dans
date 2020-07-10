@@ -14,7 +14,7 @@
   pip:
     name: "{{ (tool.name[0] == '~') | ternary(tool.name[1:], tool.name) }}"
     executable: pip2
-    extra_args: "{{ (tool.name[0] == '~') | ternary('--user', omit()) }}"
+    extra_args: "{{ (tool.name[0] == '~') | ternary('--user', omit) }}"
     state: latest
   when: tool.type is defined and tool.type == "pip2"
   tags: pkgs
@@ -24,7 +24,7 @@
   pip:
     name: "{{ (tool.name[0] == '~') | ternary(tool.name[1:], tool.name) }}"
     executable: pip3
-    extra_args: "{{ (tool.name[0] == '~') | ternary('--user', omit()) }}"
+    extra_args: "{{ (tool.name[0] == '~') | ternary('--user', omit) }}"
     state: latest
   when: tool.type is defined and tool.type == "pip3"
   tags: pkgs
