@@ -10,19 +10,21 @@
   tags: pkgs
 
 - name: "Install pip2 package: {{ tool.name }}"
-  become: yes
+  become: "{{ 'no' if tool.name[0] == '~' else 'yes' }}"
   pip:
-    name: "{{ tool.name }}"
+    name: "{{ (tool.name[0] == '~') | ternary(tool.name[1:], tool.name) }}"
     executable: pip2
+    extra_args: "{{ (tool.name[0] == '~') | ternary('--user', omit) }}"
     state: latest
   when: tool.type is defined and tool.type == "pip2"
   tags: pkgs
 
 - name: "Install pip3 package: {{ tool.name }}"
-  become: yes
+  become: "{{ 'no' if tool.name[0] == '~' else 'yes' }}"
   pip:
-    name: "{{ tool.name }}"
+    name: "{{ (tool.name[0] == '~') | ternary(tool.name[1:], tool.name) }}"
     executable: pip3
+    extra_args: "{{ (tool.name[0] == '~') | ternary('--user', omit) }}"
     state: latest
   when: tool.type is defined and tool.type == "pip3"
   tags: pkgs
@@ -48,24 +50,29 @@
       when: tool.deps.dnf is defined
       tags: pkgs
 
-    - name: "Install pip2 dependencies of {{ tool.name }}"
-      become: yes
+    - name: "Install pip2 dependencies of {{ tool.deps.pip2 }}"
+      become: "{{ 'no' if item[0] == '~' else 'yes' }}"
       pip:
-        name: "{{ tool.deps.pip2 }}"
+        name: "{{ (item[0] == '~') | ternary(item[1:], item) }}"
         executable: pip2
+        extra_args: "{{ (item[0] == '~') | ternary('--user', omit) }}"
         state: latest
+      loop: "{{ tool.deps.pip2 }}"
       when: tool.deps.pip2 is defined
       tags: pkgs
 
     - name: "Install pip3 dependencies of {{ tool.name }}"
-      become: yes
+      become: "{{ 'no' if item[0] == '~' else 'yes' }}"
       pip:
-        name: "{{ tool.deps.pip3 }}"
+        name: "{{ (item[0] == '~') | ternary(item[1:], item) }}"
         executable: pip3
+        extra_args: "{{ (item[0] == '~') | ternary('--user', omit) }}"
         state: latest
-      when: tool.pip3 is defined
+      loop: "{{ tool.deps.pip3 }}"
+      when: tool.deps.pip3 is defined
       tags: pkgs
 
+    # TODO: add npm user space
     - name: "Install npm dependencies of {{ tool.name }}"
       become: yes
       npm:
@@ -80,24 +87,21 @@
   when: tool.include_tasks is defined
   tags: always
 
+  # TODO: restart services when config changed
 - name: "Place {{ tool.name }} config"
   when: tool.config is defined
   block:
-
-    # If files places not under the home, that mean we should escalate
-    # privileges
     - name: "create {{ tool.name }} directory by root"
-      become: yes
+      become: "{{ 'no' if item.dest[0] == '~' else 'yes' }}"
       file:
         path: "{{ item.dest | dirname }}"
         state: directory
-      when: "item.dest[0] != '~'"
       loop: "{{ tool.config }}"
       loop_control:
         label: "{{ item.dest | dirname }}"
 
     - name: "copy {{ tool.name }} file confs by root"
-      become: yes
+      become: "{{ 'no' if item.dest[0] == '~' else 'yes' }}"
       copy:
         src: "config/{{ item.src }}"
         dest: "{{ item.dest }}"
@@ -106,13 +110,14 @@
         owner: "{{ item.owner | default(omit) }}"
         validate: "{{ item.validate | default(omit) }}"
         backup: "{{ item.backup | default(omit) }}"
-      when: "item.dest[0] != '~' and item.src[-3:] != '.j2'"
+      register: copy_config
+      when: "item.src[-3:] != '.j2'"
       loop: "{{ tool.config }}"
       loop_control:
         label: "{{ item.dest }}"
 
     - name: "template {{ tool.name }} file confs by root"
-      become: yes
+      become: "{{ 'no' if item.dest[0] == '~' else 'yes' }}"
       template:
         src: "config/{{ item.src }}"
         dest: "{{ item.dest }}"
@@ -121,52 +126,22 @@
         owner: "{{ item.owner | default(omit) }}"
         validate: "{{ item.validate | default(omit) }}"
         backup: "{{ item.backup | default(omit) }}"
-      when: "item.dest[0] != '~' and item.src[-3:] == '.j2'"
-      loop: "{{ tool.config }}"
-      loop_control:
-        label: "{{ item.dest }}"
-
-    - name: "create {{ tool.name }} directory"
-      file:
-        path: "{{ item.dest | dirname }}"
-        state: directory
-      when: "item.dest[0] == '~'"
-      loop: "{{ tool.config }}"
-      loop_control:
-        label: "{{ item.dest | dirname }}"
-
-    - name: "copy {{ tool.name }} file confs"
-      copy:
-        src: "config/{{ item.src }}"
-        dest: "{{ item.dest }}"
-        group: "{{ item.group | default(omit) }}"
-        mode: "{{ item.mode | default(omit) }}"
-        owner: "{{ item.owner | default(omit) }}"
-        validate: "{{ item.validate | default(omit) }}"
-        backup: "{{ item.backup | default(omit) }}"
-      when: "item.dest[0] == '~' and item.src[-3:] != '.j2'"
-      loop: "{{ tool.config }}"
-      loop_control:
-        label: "{{ item.dest }}"
-
-    - name: "template {{ tool.name }} file confs"
-      template:
-        src: "config/{{ item.src }}"
-        dest: "{{ item.dest }}"
-        group: "{{ item.group | default(omit) }}"
-        mode: "{{ item.mode | default(omit) }}"
-        owner: "{{ item.owner | default(omit) }}"
-        validate: "{{ item.validate | default(omit) }}"
-        backup: "{{ item.backup | default(omit) }}"
-      when: "item.dest[0] == '~' and item.src[-3:] == '.j2'"
+      register: template_config
+      when: "item.src[-3:] == '.j2'"
       loop: "{{ tool.config }}"
       loop_control:
         label: "{{ item.dest }}"
 
 - name: Start and enable tool's services
-  become: yes
-  service:
-    name: "{{ item }}"
+  become: "{{ 'no' if item[0] == '~' else 'yes' }}"
+  systemd:
+    name: "{{ (item[0] == '~') | ternary(item[1:], item) }}"
     enabled: yes
-    state: started
+    state: >-
+      {{ (copy_config.changed or template_config.changed)
+      | ternary('restarted', 'started') }}
+    scope: "{{ (item[0] == '~') | ternary('user', 'system') }}"
+    daemon_reload: >-
+      {{ (copy_config.changed or template_config.changed)
+      | ternary('yes', 'no') }}
   loop: "{{ tool.services | default([]) }}"

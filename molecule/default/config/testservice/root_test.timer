@@ -1,0 +1,11 @@
+# test.timer
+
+[Unit]
+Description=Root Test Timer
+
+[Timer]
+OnCalendar=*:*:0
+Unit=root_test.service
+
+[Install]
+WantedBy=timers.target
