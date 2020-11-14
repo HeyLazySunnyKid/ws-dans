@@ -84,6 +84,12 @@
       dnf:
         name: "{{ dans_repos.dnf }}"
 
+    - name: Add gpg keys for direct installed packages
+      rpm_key:
+        key: "{{ item.key | default(item) }}"
+        fingerprint: "{{ item.fingerprint | default(omit) }}"
+      loop: "{{ dans_repos.key }}"
+
 - name: Update cache after all repos changes
   dnf:
     update_cache: yes
