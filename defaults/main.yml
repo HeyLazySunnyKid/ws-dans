@@ -2,8 +2,6 @@
 # Default tools for install other tools (dnf only)
 dans_default_tools:
   - dnf-plugins-core
-  - python2
-  - python2-pip
   - python3
   - python3-pip
   - npm
